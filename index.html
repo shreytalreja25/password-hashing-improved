@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Password Validation</title>
+    <script>
+        // Function to shuffle characters in a string
+        function shuffleString(str) {
+            let arr = str.split('');
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr.join('');
+        }
+
+        // Function to validate password
+        function validatePassword() {
+            const password = document.getElementById("password").value;
+
+            // Shuffle the password
+            const jumbledPassword = shuffleString(password);
+
+            // Count character types
+            let alphaCount = 0, numCount = 0, specialCount = 0;
+            for (let char of jumbledPassword) {
+                if (/[a-zA-Z]/.test(char)) {
+                    alphaCount++;
+                } else if (/[0-9]/.test(char)) {
+                    numCount++;
+                } else if (/[\W_]/.test(char)) {
+                    specialCount++;
+                }
+            }
+
+            // Check if password meets complexity requirements
+            if (alphaCount < 1 || numCount < 1 || specialCount < 1) {
+                alert("Password must contain at least one letter, one number, and one special character.");
+                return false;
+            }
+
+            return true;
+        }
+
+        // Function to hash password
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hash = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Handle form submission
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            if (!validatePassword()) {
+                return;
+            }
+
+            const password = document.getElementById("password").value;
+            const hashedPassword = await hashPassword(password);
+
+            // Create a form data object to send hashed password
+            const formData = new FormData();
+            formData.append('password', hashedPassword);
+
+            // Send the hashed password to the server
+            fetch('/register', {
+                method: 'POST',
+                body: formData,
+            }).then(response => response.json()).then(data => {
+                console.log(data);
+            }).catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</head>
+<body>
+    <form onsubmit="handleFormSubmit(event)">
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+        <input type="submit" value="Submit">
+    </form>
+</body>
+</html>
